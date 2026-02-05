@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AuraDex — Ultimate Glass Wallpaper App</title>
+
+<link rel="icon" href="icon.png">
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+--glow-color: rgba(220,220,220,0.7);
+--glass-bg: rgba(20,20,20,0.55);
+--glass-border: rgba(255,255,255,0.15);
+--ease: cubic-bezier(.25,.8,.25,1);
+}
+body{
+font-family:'Poppins',sans-serif;
+color:#fff;
+overflow-x:hidden;
+background: rgba(15,15,15,0.85);
+backdrop-filter: blur(25px);
+scroll-behavior:smooth;
+}
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background:
+radial-gradient(circle at 20% 20%, rgba(255,255,255,0.04), transparent 40%),
+radial-gradient(circle at 80% 80%, rgba(255,255,255,0.03), transparent 40%);
+z-index:-1;
+}
+canvas{position:fixed;inset:0;z-index:-2;opacity:0.3;}
+header{
+position:sticky;
+top:0;
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:18px 8%;
+background: var(--glass-bg);
+backdrop-filter: blur(20px);
+border-bottom:1px solid var(--glass-border);
+transition:.5s var(--ease);
+}
+header:hover{box-shadow:0 0 25px var(--glow-color);}
+.upload-btn{
+padding:8px 18px;
+border-radius:20px;
+border:1px solid var(--glass-border);
+background: linear-gradient(120deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
+cursor:pointer;
+transition:.4s;
+}
+.upload-btn:hover{box-shadow:0 0 15px var(--glow-color);}
+.hero{
+min-height:90vh;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+text-align:center;
+}
+.hero h2{font-size:3rem;animation:fadeUp 1s;}
+.hero p{margin-top:20px;color:#ccc;}
+.liquid-btn{
+margin-top:30px;
+padding:14px 30px;
+border-radius:30px;
+border:1px solid var(--glass-border);
+background:linear-gradient(120deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05));
+cursor:pointer;
+transition:.4s;
+}
+.liquid-btn:hover{box-shadow:0 0 20px var(--glow-color);transform:scale(1.05);}
+.section-title{
+margin:60px 8% 20px;
+padding:12px 24px;
+background:var(--glass-bg);
+border-radius:15px;
+display:inline-block;
+}
+.gallery{
+padding:20px 8%;
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+gap:20px;
+}
+.card{
+border-radius:15px;
+overflow:hidden;
+background:#111;
+transition:.4s;
+cursor:pointer;
+}
+.card:hover{transform:scale(1.05);box-shadow:0 0 25px rgba(255,255,255,0.2);}
+.card img{width:100%;display:block;}
+.viewer{
+position:fixed;
+inset:0;
+background:rgba(0,0,0,0.9);
+display:flex;
+justify-content:center;
+align-items:center;
+opacity:0;
+pointer-events:none;
+transition:.4s;
+}
+.viewer.show{opacity:1;pointer-events:auto;}
+.viewer img{max-width:90%;max-height:90%;border-radius:20px;}
+.viewer-ui{
+position:absolute;
+bottom:30px;
+display:flex;
+gap:10px;
+}
+.viewer-ui button{
+padding:10px 20px;
+border-radius:20px;
+border:none;
+background:#111;
+color:#fff;
+cursor:pointer;
+}
+footer{
+padding:40px;
+text-align:center;
+color:#aaa;
+background:var(--glass-bg);
+}
+@keyframes fadeUp{
+from{opacity:0; transform:translateY(40px);}
+to{opacity:1; transform:translateY(0);}
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="bgParticles"></canvas>
+
+<header>
+<h1>AuraDex</h1>
+<label class="upload-btn">
+Upload
+<input type="file" id="uploadInput" accept="image/*" hidden>
+</label>
+</header>
+
+<section class="hero">
+<h2>Your Screen. Upgraded.</h2>
+<p>Upload, view, and download wallpapers.</p>
+<button class="liquid-btn" onclick="scrollToGallery()">Explore</button>
+</section>
+
+<h3 class="section-title">Discover</h3>
+<section class="gallery" id="gallery"></section>
+
+<h3 class="section-title">Trending</h3>
+<section class="gallery" id="trendingGallery"></section>
+
+<div class="viewer" id="viewer">
+<img id="viewerImg">
+<div class="viewer-ui">
+<button onclick="downloadImage()">Download</button>
+<button onclick="closeViewer()">Close</button>
+</div>
+</div>
+
+<footer>© AuraDex App</footer>
+
+<script>
+const gallery=document.getElementById("gallery");
+const uploadInput=document.getElementById("uploadInput");
+let uploads=JSON.parse(localStorage.getItem("uploads")||"[]");
+uploads.forEach(src=>createCard(src));
+function createCard(src){
+const div=document.createElement("div");
+div.className="card";
+div.innerHTML=`<img src="${src}">`;
+div.onclick=()=>openViewer(src);
+gallery.appendChild(div);
+}
+uploadInput.onchange=e=>{
+const file=e.target.files[0];
+if(!file)return;
+const reader=new FileReader();
+reader.onload=function(){
+uploads.push(reader.result);
+localStorage.setItem("uploads",JSON.stringify(uploads));
+createCard(reader.result);
+};
+reader.readAsDataURL(file);
+};
+const viewer=document.getElementById("viewer");
+const viewerImg=document.getElementById("viewerImg");
+function openViewer(src){viewer.classList.add("show");viewerImg.src=src;}
+function closeViewer(){viewer.classList.remove("show");}
+function downloadImage(){
+const link=document.createElement("a");
+link.href=viewerImg.src;
+link.download="AuraDex";
+link.click();
+}
+function scrollToGallery(){gallery.scrollIntoView({behavior:"smooth"});}
+const canvas=document.getElementById("bgParticles");
+const ctx=canvas.getContext("2d");
+let particles=[];
+function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+window.onresize=resize;resize();
+for(let i=0;i<80;i++){particles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*2,d:Math.random()*0.5});}
+function draw(){
+ctx.clearRect(0,0,canvas.width,canvas.height);
+ctx.fillStyle="rgba(255,255,255,0.08)";
+particles.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();p.y+=p.d;if(p.y>canvas.height)p.y=0;});
+}
+setInterval(draw,33);
+</script>
+
+</body>
+</html>
